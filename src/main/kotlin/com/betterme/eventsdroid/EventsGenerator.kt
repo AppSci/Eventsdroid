@@ -58,7 +58,8 @@ class EventsGenerator(
                 }
 
                 // Add all predefined values
-                val allPredefinedValuesForEvent = event.parameters.asSequence()
+                val allPredefinedValuesForEvent = event.parameters
+                        .asSequence()
                         .filter { eventParam -> eventParam.param != PARAM_SCREEN_NAME }
                         .map { eventParam -> eventParam.value }
 
@@ -66,7 +67,10 @@ class EventsGenerator(
             }
 
             val valuesObjectBuilder = TypeSpec.objectBuilder("Values")
-            predefinedValues.forEach { value ->
+            predefinedValues
+                    .asSequence()
+                    .filter { it.isNotEmpty() && it != "null" }
+                    .forEach { value ->
                 valuesObjectBuilder
                         .addProperty(PropertySpec.builder(getPredefinedValueVariableName(value), String::class)
                                 .addModifiers(KModifier.CONST)
@@ -141,11 +145,25 @@ class EventsGenerator(
 
         val eventParams = parameters.filter { it.param != PARAM_SCREEN_NAME }
 
+        // Initialize the builder of event data class constructor which accepts custom parameters as arguments.
+        val customParamsConstructorBuilder = FunSpec.constructorBuilder()
+
         // Generate map of custom parameters
         val customEventParamsBuilder = CodeBlock.builder()
         customEventParamsBuilder.add("mapOf(")
+
         eventParams.forEachIndexed { index, field ->
-            customEventParamsBuilder.add("%S to %S", field.param, field.value)
+            // Add custom parameter to event constructor's signature.
+            customParamsConstructorBuilder.addParameter(field.param, String::class)
+
+            // Provide specification for this custom parameter.
+            val eventParamSpec = PropertySpec.builder(field.param, String::class)
+                    .initializer(field.param)
+                    .build()
+            eventDataClassBuilder.addProperty(eventParamSpec)
+
+            // Add custom parameters to map.
+            customEventParamsBuilder.add("%S to %N", field.param, eventParamSpec)
             if (index < parameters.size - 2) {
                 // Separate all pairs except for the last one with comma.
                 customEventParamsBuilder.add(", ")
@@ -153,19 +171,9 @@ class EventsGenerator(
         }
         customEventParamsBuilder.add(")")
 
-        val constructorBuilder = FunSpec.constructorBuilder()
-
-        eventParams.forEach {
-            constructorBuilder.addParameter(it.param, String::class)
-
-            eventDataClassBuilder.addProperty(PropertySpec.builder(it.param, String::class)
-                    .initializer(it.param)
-                    .build())
-        }
-
         return eventDataClassBuilder
                 .addModifiers(KModifier.DATA)
-                .primaryConstructor(constructorBuilder.build())
+                .primaryConstructor(customParamsConstructorBuilder.build())
                 .superclass(ClassName(packageName, BASE_EVENT_CLASS_NAME))
                 .addSuperclassConstructorParameter("%S", categoryName)
                 .addSuperclassConstructorParameter("%S", screenName)
