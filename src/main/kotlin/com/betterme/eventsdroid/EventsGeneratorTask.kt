@@ -19,7 +19,9 @@ open class EventsGeneratorTask : DefaultTask() {
 
     @TaskAction
     fun generateEvents() {
-        val eventsGenerator = EventsGenerator(Gson(), destPath.get(), packageName.get())
-        eventsGenerator.generateEventsClasses(eventsSchemaFile.get())
+        EventsGenerator(Gson(), destPath.get(), packageName.get()).also {
+            it.generateBaseEventClass()
+            it.generateEventsClasses(eventsSchemaFile.get())
+        }
     }
 }

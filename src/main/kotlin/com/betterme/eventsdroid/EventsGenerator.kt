@@ -1,11 +1,11 @@
 package com.betterme.eventsdroid
 
 import com.betterme.eventsdroid.entities.AnalyticsCategoryEntity
-import com.betterme.eventsdroid.entities.Event
 import com.betterme.eventsdroid.entities.EventParameterEntity
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.squareup.kotlinpoet.*
+import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import java.io.File
 
 class EventsGenerator(
@@ -16,6 +16,8 @@ class EventsGenerator(
 
     companion object {
         private const val PARAM_SCREEN_NAME = "screen_name"
+
+        private const val BASE_EVENT_CLASS_NAME = "BaseEvent"
     }
 
     fun generateEventsClasses(schemaFile: File) {
@@ -75,11 +77,40 @@ class EventsGenerator(
 
             rootObjectBuilder.addType(valuesObjectBuilder.build())
 
-            val file = FileSpec.builder("$packageName.${categoryName.toLowerCase()}", "$className")
+            val eventsFile = FileSpec.builder("$packageName.${categoryName.toLowerCase()}", "$className")
                     .addType(rootObjectBuilder.build())
                     .build()
-            file.writeTo(destFilePath)
+            eventsFile.writeTo(destFilePath)
         }
+    }
+
+    fun generateBaseEventClass() {
+        val baseEventClassBuilder = TypeSpec.classBuilder("BaseEvent").apply {
+            primaryConstructor(FunSpec.constructorBuilder()
+                    .addParameter("categoryName", String::class)
+                    .addParameter("screenName", String::class)
+                    .addParameter("eventName", String::class)
+                    .addParameter("params", String::class)
+                    .build())
+            addModifiers(KModifier.OPEN, KModifier.DATA)
+            addProperty(PropertySpec.builder("categoryName", String::class)
+                    .initializer("categoryName")
+                    .build())
+            addProperty(PropertySpec.builder("screenName", String::class)
+                    .initializer("screenName")
+                    .build())
+            addProperty(PropertySpec.builder("eventName", String::class)
+                    .initializer("eventName")
+                    .build())
+            addProperty(PropertySpec.builder("params", Map::class.parameterizedBy(String::class, String::class))
+                    .addModifiers(KModifier.OPEN)
+                    .build()
+            )
+        }
+        val file = FileSpec.builder(packageName, BASE_EVENT_CLASS_NAME)
+                .addType(baseEventClassBuilder.build())
+                .build()
+        file.writeTo(destFilePath)
     }
 
     private fun createEventObjectBuilder(
@@ -92,7 +123,7 @@ class EventsGenerator(
         val eventObjectBuilder = TypeSpec.objectBuilder(eventClassName)
 
         return eventObjectBuilder
-                .superclass(Event::class)
+                .superclass(ClassName(packageName, BASE_EVENT_CLASS_NAME))
                 .addSuperclassConstructorParameter("%S", categoryName)
                 .addSuperclassConstructorParameter("%S", screenName)
                 .addSuperclassConstructorParameter("%S", eventName)
@@ -136,7 +167,7 @@ class EventsGenerator(
         return eventDataClassBuilder
                 .addModifiers(KModifier.DATA)
                 .primaryConstructor(constructorBuilder.build())
-                .superclass(Event::class)
+                .superclass(ClassName(packageName, BASE_EVENT_CLASS_NAME))
                 .addSuperclassConstructorParameter("%S", categoryName)
                 .addSuperclassConstructorParameter("%S", screenName)
                 .addSuperclassConstructorParameter("%S", eventName)
