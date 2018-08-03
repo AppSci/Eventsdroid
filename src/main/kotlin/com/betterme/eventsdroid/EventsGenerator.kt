@@ -183,7 +183,7 @@ class EventsGenerator(
                             .addProperty(PropertySpec.builder(getPredefinedValueVariableName(eventParamEntry.key,
                                     eventParamEntry.value), String::class)
                                     .addModifiers(KModifier.CONST)
-                                    .initializer("%S", eventParamEntry)
+                                    .initializer("%S", eventParamEntry.value)
                                     .build())
                 }
         return valuesObjectBuilder
