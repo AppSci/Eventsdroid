@@ -65,13 +65,12 @@ class EventsGenerator(
                 predefinedValues.addAll(allPredefinedValuesForEvent)
             }
 
-
             val valuesObjectBuilder = TypeSpec.objectBuilder("Values")
-            predefinedValues.forEach {
+            predefinedValues.forEach { value ->
                 valuesObjectBuilder
-                        .addProperty(PropertySpec.builder(getVariableName(it), String::class)
+                        .addProperty(PropertySpec.builder(getPredefinedValueVariableName(value), String::class)
                                 .addModifiers(KModifier.CONST)
-                                .initializer("%S", it)
+                                .initializer("%S", value)
                                 .build())
             }
 
@@ -90,9 +89,9 @@ class EventsGenerator(
                     .addParameter("categoryName", String::class)
                     .addParameter("screenName", String::class)
                     .addParameter("eventName", String::class)
-                    .addParameter("params", String::class)
+                    .addParameter("params", Map::class.parameterizedBy(String::class, String::class))
                     .build())
-            addModifiers(KModifier.OPEN, KModifier.DATA)
+            addModifiers(KModifier.OPEN)
             addProperty(PropertySpec.builder("categoryName", String::class)
                     .initializer("categoryName")
                     .build())
@@ -103,7 +102,7 @@ class EventsGenerator(
                     .initializer("eventName")
                     .build())
             addProperty(PropertySpec.builder("params", Map::class.parameterizedBy(String::class, String::class))
-                    .addModifiers(KModifier.OPEN)
+                    .initializer("params")
                     .build()
             )
         }
@@ -191,7 +190,7 @@ class EventsGenerator(
     inline fun <reified T> Gson.fromJson(json: String) =
             this.fromJson<T>(json, object: TypeToken<T>() {}.type)
 
-    private fun getVariableName(field: String) = field
+    private fun getPredefinedValueVariableName(value: String) = value
             .toUpperCase().replace(" ", "_")
 
 }
