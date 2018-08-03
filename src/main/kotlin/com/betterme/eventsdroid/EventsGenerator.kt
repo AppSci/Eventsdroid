@@ -22,21 +22,21 @@ class EventsGenerator(
         val jsonString = readFile(schemaFile)
 
         val analyticsCategories = gson.fromJson<List<AnalyticsCategoryEntity>>(jsonString)
-        analyticsCategories.forEach {
-            val categoryName = it.categoryName
+        analyticsCategories.forEach { eventEntity ->
+            val categoryName = eventEntity.categoryName
             val formattedClassName = getFormattedEventSetClassName(categoryName)
             val className = ClassName("", formattedClassName)
             val rootObjectBuilder = TypeSpec.objectBuilder(formattedClassName)
 
             val predefinedValues = mutableSetOf<String>()
 
-            it.events.forEach {
-                val eventName = it.eventName
+            eventEntity.events.forEach { event ->
+                val eventName = event.eventName
                 val eventClassName = getFormattedEventClassName(eventName)
 
-                val parameters = it.parameters
+                val parameters = event.parameters
 
-                val screenParam = parameters.firstOrNull { it.param == PARAM_SCREEN_NAME }
+                val screenParam = parameters.firstOrNull { parameter -> parameter.param == PARAM_SCREEN_NAME }
                         ?: throw IllegalStateException("screen_name parameter is not defined!")
                 val screenName = screenParam.value
 
@@ -56,9 +56,9 @@ class EventsGenerator(
                 }
 
                 // Add all predefined values
-                val allPredefinedValuesForEvent = it.parameters.asSequence()
-                        .filter { it.param != PARAM_SCREEN_NAME }
-                        .map { it.value }
+                val allPredefinedValuesForEvent = event.parameters.asSequence()
+                        .filter { eventParam -> eventParam.param != PARAM_SCREEN_NAME }
+                        .map { eventParam -> eventParam.value }
 
                 predefinedValues.addAll(allPredefinedValuesForEvent)
             }
@@ -75,7 +75,7 @@ class EventsGenerator(
 
             rootObjectBuilder.addType(valuesObjectBuilder.build())
 
-            val file = FileSpec.builder("$packageName.$categoryName", "$className")
+            val file = FileSpec.builder("$packageName.${categoryName.toLowerCase()}", "$className")
                     .addType(rootObjectBuilder.build())
                     .build()
             file.writeTo(destFilePath)
@@ -116,7 +116,8 @@ class EventsGenerator(
         customEventParamsBuilder.add("mapOf(")
         eventParams.forEachIndexed { index, field ->
             customEventParamsBuilder.add("%S to %S", field.param, field.value)
-            if (index < parameters.size - 1) {
+            if (index < parameters.size - 2) {
+                // Separate all pairs except for the last one with comma.
                 customEventParamsBuilder.add(", ")
             }
         }
