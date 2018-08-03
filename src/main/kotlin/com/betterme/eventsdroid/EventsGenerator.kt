@@ -116,7 +116,7 @@ class EventsGenerator(
         customEventParamsBuilder.add("mapOf(")
         eventParams.forEachIndexed { index, field ->
             customEventParamsBuilder.add("%S to %S", field.param, field.value)
-            if (index == parameters.size - 1) {
+            if (index < parameters.size - 1) {
                 customEventParamsBuilder.add(", ")
             }
         }
