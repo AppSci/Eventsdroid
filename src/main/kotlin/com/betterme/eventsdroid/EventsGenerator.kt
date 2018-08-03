@@ -30,7 +30,8 @@ class EventsGenerator(
             val className = ClassName("", formattedClassName)
             val rootObjectBuilder = TypeSpec.objectBuilder(formattedClassName)
 
-            val predefinedValues = mutableSetOf<String>()
+            // Map which consists of event's parameter-value pairs.
+            val predefinedValuesMap = mutableMapOf<String, String>()
 
             eventEntity.events.forEach { event ->
                 val eventName = event.eventName
@@ -57,28 +58,19 @@ class EventsGenerator(
                     rootObjectBuilder.addType(eventObjectBuilder.build())
                 }
 
-                // Add all predefined values
+                // Add all predefined values (parameter-value pairs).
                 val allPredefinedValuesForEvent = event.parameters
                         .asSequence()
                         .filter { eventParam -> eventParam.param != PARAM_SCREEN_NAME }
-                        .map { eventParam -> eventParam.value }
+                        .map { eventParam -> eventParam.param to eventParam.value }
 
-                predefinedValues.addAll(allPredefinedValuesForEvent)
+                predefinedValuesMap.putAll(allPredefinedValuesForEvent)
             }
 
-            val valuesObjectBuilder = TypeSpec.objectBuilder("Values")
-            predefinedValues
-                    .asSequence()
-                    .filter { it.isNotEmpty() && it != "null" }
-                    .forEach { value ->
-                valuesObjectBuilder
-                        .addProperty(PropertySpec.builder(getPredefinedValueVariableName(value), String::class)
-                                .addModifiers(KModifier.CONST)
-                                .initializer("%S", value)
-                                .build())
+            if (predefinedValuesMap.isNotEmpty()) {
+                val predefinedValuesObjectBuilder = createPredefinedValuesObjectBuilder(predefinedValuesMap)
+                rootObjectBuilder.addType(predefinedValuesObjectBuilder.build())
             }
-
-            rootObjectBuilder.addType(valuesObjectBuilder.build())
 
             val eventsFile = FileSpec.builder("$packageName.${categoryName.toLowerCase()}", "$className")
                     .addType(rootObjectBuilder.build())
@@ -181,6 +173,22 @@ class EventsGenerator(
                 .addSuperclassConstructorParameter(customEventParamsBuilder.build())
     }
 
+    private fun createPredefinedValuesObjectBuilder(predefinedValues: Map<String, String>): TypeSpec.Builder {
+        val valuesObjectBuilder = TypeSpec.objectBuilder("Values")
+        predefinedValues
+                .asSequence()
+                .filter { it.value.isNotEmpty() && it.value != "null" }
+                .forEach { eventParamEntry ->
+                    valuesObjectBuilder
+                            .addProperty(PropertySpec.builder(getPredefinedValueVariableName(eventParamEntry.key,
+                                    eventParamEntry.value), String::class)
+                                    .addModifiers(KModifier.CONST)
+                                    .initializer("%S", eventParamEntry)
+                                    .build())
+                }
+        return valuesObjectBuilder
+    }
+
     private fun readFile(file: File): String = file.readText(Charsets.UTF_8)
 
     private fun getFormattedEventSetClassName(categoryName: String): String {
@@ -198,7 +206,9 @@ class EventsGenerator(
     inline fun <reified T> Gson.fromJson(json: String) =
             this.fromJson<T>(json, object: TypeToken<T>() {}.type)
 
-    private fun getPredefinedValueVariableName(value: String) = value
-            .toUpperCase().replace(" ", "_")
+    private fun getPredefinedValueVariableName(paramName: String, paramValue: String) =
+            paramName.toUpperCase().replace(" ", "_")
+                    .plus("_")
+                    .plus(paramValue.toUpperCase().replace(" ", "_"))
 
 }
