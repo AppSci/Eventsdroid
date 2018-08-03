@@ -1,0 +1,51 @@
+
+plugins {
+    id 'org.jetbrains.kotlin.jvm' version '1.2.60'
+    id 'java-gradle-plugin'
+    id "com.gradle.plugin-publish" version '0.10.0'
+}
+
+group 'eventsdroid'
+version '0.1'
+
+repositories {
+    jcenter()
+}
+
+dependencies {
+    compileOnly gradleApi()
+
+    // Kotlin
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.2.60"
+    implementation "com.squareup:kotlinpoet:1.0.0-RC1"
+
+    // JSON Parsing
+    implementation "com.google.code.gson:gson:2.8.2"
+}
+
+gradlePlugin {
+    plugins {
+        eventsGenerator {
+            id = 'com.betterme.eventsdroid'
+            implementationClass = 'com.betterme.eventsdroid.EventsGeneratorPlugin'
+        }
+    }
+}
+
+pluginBundle {
+    description = 'Plugin which allows automatic analytics events generation based on the given schema'
+
+    plugins {
+        eventsGenerator {
+            displayName = 'eventsDroid'
+            version = '1.0'
+        }
+    }
+}
+
+compileKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
+compileTestKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
