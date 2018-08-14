@@ -133,7 +133,7 @@ repositories {
 }
 
 dependencies {
-    classpath "gradle.plugin.eventsdroid:com.betterme.eventsdroid:0.1.7"
+    classpath "gradle.plugin.eventsdroid:com.betterme.eventsdroid:0.1.20"
 }
 ```
 
