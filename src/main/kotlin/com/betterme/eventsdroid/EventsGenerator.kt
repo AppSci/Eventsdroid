@@ -40,20 +40,19 @@ class EventsGenerator(
                 val parameters = event.parameters
 
                 val screenParam = parameters.firstOrNull { parameter -> parameter.param == PARAM_SCREEN_NAME }
-                        ?: throw IllegalStateException("screen_name parameter is not defined!")
-                val screenName = screenParam.value
+                val screenName = screenParam?.value
 
                 if (parameters.size > 1) {
                     // If there are many parameters defined, data class with custom fields will be generated.
                     val eventDataClassBuilder = createEventDataClassBuilder(parameters,
-                            eventClassName, categoryName, screenName, eventName)
+                            eventClassName, categoryName, screenName.orEmpty(), eventName)
 
                     rootObjectBuilder.addType(eventDataClassBuilder.build())
                 } else {
                     // Otherwise, plain Event object with empty custom parameters map will be
                     // generated for this event.
                     val eventObjectBuilder = createEventObjectBuilder(className, categoryName,
-                            screenName, eventName)
+                            screenName.orEmpty(), eventName)
 
                     rootObjectBuilder.addType(eventObjectBuilder.build())
                 }

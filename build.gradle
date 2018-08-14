@@ -6,7 +6,7 @@ plugins {
 }
 
 group 'eventsdroid'
-version '0.1.7'
+version '0.1.8'
 
 repositories {
     jcenter()
@@ -41,7 +41,7 @@ pluginBundle {
     plugins {
         eventsGenerator {
             displayName = 'eventsDroid'
-            version = '0.1.7'
+            version = '0.1.8'
         }
     }
 }
