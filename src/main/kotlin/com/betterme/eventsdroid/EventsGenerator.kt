@@ -57,7 +57,7 @@ class EventsGenerator(
                     rootObjectBuilder.addType(eventDataClassBuilder.build())
                 }
 
-                parameters.filter { it.value.isNotEmpty() && it.value != "null" }.forEach {
+                parameters.filter { it.param != PARAM_SCREEN_NAME && it.value.isNotEmpty() && it.value != "null" }.forEach {
                     predefinedValuesSet.add(it.value)
                 }
             }
