@@ -5,8 +5,8 @@ plugins {
     id "com.gradle.plugin-publish" version '0.10.0'
 }
 
-group 'eventsdroid'
-version '0.1.8'
+group 'analytics'
+version '0.1.20'
 
 repositories {
     jcenter()
@@ -41,7 +41,7 @@ pluginBundle {
     plugins {
         eventsGenerator {
             displayName = 'eventsDroid'
-            version = '0.1.8'
+            version = '0.1.20'
         }
     }
 }

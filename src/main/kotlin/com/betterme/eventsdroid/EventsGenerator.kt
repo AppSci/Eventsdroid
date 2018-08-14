@@ -30,48 +30,44 @@ class EventsGenerator(
             val className = ClassName("", formattedClassName)
             val rootObjectBuilder = TypeSpec.objectBuilder(formattedClassName)
 
-            // Map which consists of event's parameter-value pairs.
-            val predefinedValuesMap = mutableMapOf<String, String>()
+            val predefinedValuesSet = mutableSetOf<String>()
 
             eventEntity.events.forEach { event ->
                 val eventName = event.eventName
                 val eventClassName = getFormattedEventClassName(eventName)
 
                 val parameters = event.parameters
+                val parametersNames = parameters.map { it.param }
 
                 val screenParam = parameters.firstOrNull { parameter -> parameter.param == PARAM_SCREEN_NAME }
                 val screenName = screenParam?.value
 
-                if (parameters.size > 1) {
+                if (parametersNames.contains(PARAM_SCREEN_NAME) && parametersNames.size <= 1) {
+                    // Otherwise, plain Event object with empty custom parameters map will be
+                    // generated for this event.
+                    val eventObjectBuilder = createEventObjectBuilder(eventClassName, categoryName,
+                            screenName.orEmpty(), eventName)
+
+                    rootObjectBuilder.addType(eventObjectBuilder.build())
+                } else {
                     // If there are many parameters defined, data class with custom fields will be generated.
                     val eventDataClassBuilder = createEventDataClassBuilder(parameters,
                             eventClassName, categoryName, screenName.orEmpty(), eventName)
 
                     rootObjectBuilder.addType(eventDataClassBuilder.build())
-                } else {
-                    // Otherwise, plain Event object with empty custom parameters map will be
-                    // generated for this event.
-                    val eventObjectBuilder = createEventObjectBuilder(className, categoryName,
-                            screenName.orEmpty(), eventName)
-
-                    rootObjectBuilder.addType(eventObjectBuilder.build())
                 }
 
-                // Add all predefined values (parameter-value pairs).
-                val allPredefinedValuesForEvent = event.parameters
-                        .asSequence()
-                        .filter { eventParam -> eventParam.param != PARAM_SCREEN_NAME }
-                        .map { eventParam -> eventParam.param to eventParam.value }
-
-                predefinedValuesMap.putAll(allPredefinedValuesForEvent)
+                parameters.filter { it.value.isNotEmpty() && it.value != "null" }.forEach {
+                    predefinedValuesSet.add(it.value)
+                }
             }
 
-            if (predefinedValuesMap.isNotEmpty()) {
-                val predefinedValuesObjectBuilder = createPredefinedValuesObjectBuilder(predefinedValuesMap)
+            if (predefinedValuesSet.isNotEmpty()) {
+                val predefinedValuesObjectBuilder = createPredefinedValuesObjectBuilder(predefinedValuesSet)
                 rootObjectBuilder.addType(predefinedValuesObjectBuilder.build())
             }
 
-            val eventsFile = FileSpec.builder("$packageName.${categoryName.toLowerCase()}", "$className")
+            val eventsFile = FileSpec.builder("$packageName.${categoryName.toLowerCase().replace("_", "")}", "$className")
                     .addType(rootObjectBuilder.build())
                     .build()
             eventsFile.writeTo(destFilePath)
@@ -108,7 +104,7 @@ class EventsGenerator(
     }
 
     private fun createEventObjectBuilder(
-            eventClassName: ClassName,
+            eventClassName: String,
             categoryName: String,
             screenName: String,
             eventName: String
@@ -143,19 +139,23 @@ class EventsGenerator(
         val customEventParamsBuilder = CodeBlock.builder()
         customEventParamsBuilder.add("mapOf(")
 
-        eventParams.forEachIndexed { index, field ->
+        val eventParamsSet = eventParams.map { it.param }.toSet()
+
+        eventParamsSet.forEachIndexed { index, field ->
+            val formattedParamName = getFormattedParameterName(field)
+
             // Add custom parameter to event constructor's signature.
-            customParamsConstructorBuilder.addParameter(field.param, String::class)
+            customParamsConstructorBuilder.addParameter(formattedParamName, String::class)
 
             // Provide specification for this custom parameter.
-            val eventParamSpec = PropertySpec.builder(field.param, String::class)
-                    .initializer(field.param)
+            val eventParamSpec = PropertySpec.builder(formattedParamName, String::class)
+                    .initializer(formattedParamName)
                     .build()
             eventDataClassBuilder.addProperty(eventParamSpec)
 
             // Add custom parameters to map.
-            customEventParamsBuilder.add("%S to %N", field.param, eventParamSpec)
-            if (index < parameters.size - 2) {
+            customEventParamsBuilder.add("%S to %N", field, eventParamSpec)
+            if (index < eventParamsSet.size - 1) {
                 // Separate all pairs except for the last one with comma.
                 customEventParamsBuilder.add(", ")
             }
@@ -172,17 +172,14 @@ class EventsGenerator(
                 .addSuperclassConstructorParameter(customEventParamsBuilder.build())
     }
 
-    private fun createPredefinedValuesObjectBuilder(predefinedValues: Map<String, String>): TypeSpec.Builder {
+    private fun createPredefinedValuesObjectBuilder(predefinedValues: Set<String>): TypeSpec.Builder {
         val valuesObjectBuilder = TypeSpec.objectBuilder("Values")
         predefinedValues
-                .asSequence()
-                .filter { it.value.isNotEmpty() && it.value != "null" }
-                .forEach { eventParamEntry ->
+                .forEach { predefinedValue ->
                     valuesObjectBuilder
-                            .addProperty(PropertySpec.builder(getPredefinedValueVariableName(eventParamEntry.key,
-                                    eventParamEntry.value), String::class)
+                            .addProperty(PropertySpec.builder(getPredefinedValueVariableName(predefinedValue), String::class)
                                     .addModifiers(KModifier.CONST)
-                                    .initializer("%S", eventParamEntry.value)
+                                    .initializer("%S", predefinedValue)
                                     .build())
                 }
         return valuesObjectBuilder
@@ -191,7 +188,11 @@ class EventsGenerator(
     private fun readFile(file: File): String = file.readText(Charsets.UTF_8)
 
     private fun getFormattedEventSetClassName(categoryName: String): String {
-        return categoryName.capitalize().plus("Events")
+        return categoryName
+                .split("_")
+                .asSequence()
+                .map { it.capitalize() }
+                .joinToString(postfix = "Events", separator = "")
     }
 
     private fun getFormattedEventClassName(eventName: String): String {
@@ -202,12 +203,20 @@ class EventsGenerator(
                 .joinToString(separator = "", postfix = "Event")
     }
 
+    private fun getFormattedParameterName(paramName: String): String {
+        return paramName
+                .split("_")
+                .asSequence()
+                .mapIndexed { index: Int, param: String ->
+                    if (index > 0) param.capitalize() else param
+                }
+                .joinToString(separator = "")
+    }
+
+    private fun getPredefinedValueVariableName(paramValue: String) =
+            paramValue.toUpperCase().replace(" ", "_")
+
     inline fun <reified T> Gson.fromJson(json: String) =
             this.fromJson<T>(json, object: TypeToken<T>() {}.type)
-
-    private fun getPredefinedValueVariableName(paramName: String, paramValue: String) =
-            paramName.toUpperCase().replace(" ", "_")
-                    .plus("_")
-                    .plus(paramValue.toUpperCase().replace(" ", "_"))
 
 }
