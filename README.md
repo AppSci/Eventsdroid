@@ -18,7 +18,8 @@ For now, this plugin works only with this one:
             "value": "trainings"
           },
           {
-            "name": "program"
+            "name": "program",
+            "value": "null"
           }
         ]
       },
@@ -35,11 +36,34 @@ For now, this plugin works only with this one:
         "name": "screen_view1",
         "parameters": [
           {
-            "name": "result"
+            "name": "result",
+            "value": "test"
           },
           {
             "name": "screen_name",
             "value": "trainings"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Settings",
+    "events": [
+      {
+        "name": "view",
+        "parameters": [
+          {
+            "name": "name",
+            "value": "null"
+          },
+          {
+            "name": "screen_name",
+            "value": "trainings"
+          },
+          {
+            "name": "value",
+            "value": "null"
           }
         ]
       }
@@ -82,6 +106,8 @@ object ProgramsEvents {
     }
 }
 ```
+
+"null" values will be ignored.
 
 ### Q: In which case objects, and in which one data classes are generated?
 
