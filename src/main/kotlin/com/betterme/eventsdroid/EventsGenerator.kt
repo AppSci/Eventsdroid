@@ -139,10 +139,10 @@ class EventsGenerator(
         val customEventParamsBuilder = CodeBlock.builder()
         customEventParamsBuilder.add("mapOf(")
 
-        val eventParamsSet = eventParams.map { it.param }.toSet()
+        val eventParamsSet = eventParams.toSet()
 
         eventParamsSet.forEachIndexed { index, field ->
-            val formattedParamName = getFormattedParameterName(field)
+            val formattedParamName = getFormattedParameterName(field.param)
 
             // Add custom parameter to event constructor's signature.
             customParamsConstructorBuilder.addParameter(formattedParamName, String::class)
@@ -154,7 +154,7 @@ class EventsGenerator(
             eventDataClassBuilder.addProperty(eventParamSpec)
 
             // Add custom parameters to map.
-            customEventParamsBuilder.add("%S to %N", field, eventParamSpec)
+            customEventParamsBuilder.add("%S to %N", field.param, eventParamSpec)
             if (index < eventParamsSet.size - 1) {
                 // Separate all pairs except for the last one with comma.
                 customEventParamsBuilder.add(", ")
