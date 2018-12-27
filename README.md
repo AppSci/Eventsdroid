@@ -1,8 +1,38 @@
 # Eventsdroid
 Gradle plugin responsible for automatic analytics events classes generation based on a certain JSON-schema.
 
-## How does it work?
-Let's assume, you have analytics events JSON-schema, which has a certain pattern.
+## How to generate JSON-schema?
+
+Google Sheets event tables for all Android projects can be found here:
+https://docs.google.com/spreadsheets/d/1lqWxffdA32sdVcldZMrzwPnuO3VTuE5xz4BJlJ2HQHw/edit#gid=421475800
+
+1. Select `Export JSON` option in Google Sheets status bar and click `Configure Export`.
+
+![Step 1](docs/events_schema_gen_step1.png)
+
+2. This will transpose this Google Sheets table and convert it to JSON with GoogleScript. Leave
+all selected option as is except for the third one, where you should choose `Merged categories with events & parameters`.
+
+![Step 2](docs/events_schema_gen_step2.png)
+
+The other ones will generate the JSON-schema of yet unsupported format for this generator.
+
+3. Then press `Export Active Sheet` button.
+
+![Step 3](docs/events_schema_gen_step3.png)
+
+4. You'll probably be routed to the error dialog which looks like the one on the screenshot below, but feel
+free to omit it and just press OK in this case.
+
+![Step 4](docs/events_schema_gen_step4.png)
+
+5. As a result, you'll see the Exported JSON dialog with the JSON-schema of events you require. Just
+copy all content of the text field and paste it to the corresponding `*.json` file with analytics events schema in your project.
+
+![Step 5](docs/events_schema_gen_step5.png)
+
+## How to generate Kotlin event classes?
+Let's assume, you already have analytics events JSON-schema, which has a certain pattern.
 For now, this plugin works only with this one:
 
 ```JSON
