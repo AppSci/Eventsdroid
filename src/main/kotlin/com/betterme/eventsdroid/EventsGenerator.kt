@@ -15,8 +15,6 @@ class EventsGenerator(
 ) {
 
     companion object {
-        private const val PARAM_SCREEN_NAME = "screen_name"
-
         private const val BASE_EVENT_CLASS_NAME = "BaseEvent"
     }
 
@@ -39,25 +37,22 @@ class EventsGenerator(
                 val parameters = event.parameters
                 val parametersNames = parameters.map { it.param }
 
-                val screenParam = parameters.firstOrNull { parameter -> parameter.param == PARAM_SCREEN_NAME }
-                val screenName = screenParam?.value
-
-                if (parametersNames.contains(PARAM_SCREEN_NAME) && parametersNames.size <= 1) {
+                if (parametersNames.isEmpty()) {
                     // Otherwise, plain Event object with empty custom parameters map will be
                     // generated for this event.
                     val eventObjectBuilder = createEventObjectBuilder(eventClassName, categoryName,
-                            screenName.orEmpty(), eventName)
+                            eventName)
 
                     rootObjectBuilder.addType(eventObjectBuilder.build())
                 } else {
                     // If there are many parameters defined, data class with custom fields will be generated.
                     val eventDataClassBuilder = createEventDataClassBuilder(parameters,
-                            eventClassName, categoryName, screenName.orEmpty(), eventName)
+                            eventClassName, categoryName, eventName)
 
                     rootObjectBuilder.addType(eventDataClassBuilder.build())
                 }
 
-                parameters.filter { it.param != PARAM_SCREEN_NAME && it.value.isNotEmpty() && it.value != "null" }.forEach {
+                parameters.filter { it.value.isNotEmpty() && it.value != "null" }.forEach {
                     predefinedValuesSet.add(it.value)
                 }
             }
@@ -106,7 +101,6 @@ class EventsGenerator(
     private fun createEventObjectBuilder(
             eventClassName: String,
             categoryName: String,
-            screenName: String,
             eventName: String
     ): TypeSpec.Builder {
 
@@ -115,7 +109,6 @@ class EventsGenerator(
         return eventObjectBuilder
                 .superclass(ClassName(packageName, BASE_EVENT_CLASS_NAME))
                 .addSuperclassConstructorParameter("%S", categoryName)
-                .addSuperclassConstructorParameter("%S", screenName)
                 .addSuperclassConstructorParameter("%S", eventName)
                 .addSuperclassConstructorParameter("emptyMap()")
     }
@@ -124,13 +117,10 @@ class EventsGenerator(
             parameters: List<EventParameterEntity>,
             eventClassName: String,
             categoryName: String,
-            screenName: String,
             eventName: String
     ): TypeSpec.Builder {
 
         val eventDataClassBuilder = TypeSpec.classBuilder(eventClassName)
-
-        val eventParams = parameters.filter { it.param != PARAM_SCREEN_NAME }
 
         // Initialize the builder of event data class constructor which accepts custom parameters as arguments.
         val customParamsConstructorBuilder = FunSpec.constructorBuilder()
@@ -139,7 +129,7 @@ class EventsGenerator(
         val customEventParamsBuilder = CodeBlock.builder()
         customEventParamsBuilder.add("mapOf(")
 
-        val eventParamsSet = eventParams.toSet()
+        val eventParamsSet = parameters.toSet()
 
         eventParamsSet.forEachIndexed { index, field ->
             val formattedParamName = getFormattedParameterName(field.param)
@@ -167,7 +157,6 @@ class EventsGenerator(
                 .primaryConstructor(customParamsConstructorBuilder.build())
                 .superclass(ClassName(packageName, BASE_EVENT_CLASS_NAME))
                 .addSuperclassConstructorParameter("%S", categoryName)
-                .addSuperclassConstructorParameter("%S", screenName)
                 .addSuperclassConstructorParameter("%S", eventName)
                 .addSuperclassConstructorParameter(customEventParamsBuilder.build())
     }
@@ -217,6 +206,6 @@ class EventsGenerator(
             paramValue.toUpperCase().replace(" ", "_")
 
     inline fun <reified T> Gson.fromJson(json: String) =
-            this.fromJson<T>(json, object: TypeToken<T>() {}.type)
+            this.fromJson<T>(json, object : TypeToken<T>() {}.type)
 
 }
