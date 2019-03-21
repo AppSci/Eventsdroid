@@ -26,7 +26,7 @@ dependencies {
 gradlePlugin {
     plugins {
         eventsGenerator {
-            id = 'com.betterme.eventsdroid'
+            id = 'com.appsci.eventsdroid'
             implementationClass = 'com.betterme.eventsdroid.EventsGeneratorPlugin'
         }
     }
@@ -34,8 +34,8 @@ gradlePlugin {
 
 pluginBundle {
     description = 'Plugin which allows automatic analytics events generation based on the given schema'
-    website = 'https://github.com/betterme-dev/Eventsdroid'
-    vcsUrl = 'https://github.com/betterme-dev/Eventsdroid'
+    website = 'https://github.com/AppSci/Eventsdroid'
+    vcsUrl = 'https://github.com/AppSci/Eventsdroid'
     tags = ['analytics', 'events', 'codegen', 'generation']
 
     plugins {
