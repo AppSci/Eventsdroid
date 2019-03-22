@@ -6,7 +6,7 @@ plugins {
 }
 
 group 'sleepsci.analytics'
-version '0.9.0'
+version '0.9.1'
 
 repositories {
     jcenter()
@@ -41,7 +41,7 @@ pluginBundle {
     plugins {
         eventsGenerator {
             displayName = 'eventsDroid'
-            version = '0.9.0'
+            version = '0.9.1'
         }
     }
 }
