@@ -37,6 +37,7 @@ class EventsGenerator(
                 val parameters = event.parameters
                 val parametersNames = parameters.map { it.param }
 
+
                 if (parametersNames.isEmpty()) {
                     // Otherwise, plain Event object with empty custom parameters map will be
                     // generated for this event.
@@ -73,16 +74,12 @@ class EventsGenerator(
         val baseEventClassBuilder = TypeSpec.classBuilder("BaseEvent").apply {
             primaryConstructor(FunSpec.constructorBuilder()
                     .addParameter("categoryName", String::class)
-                    .addParameter("screenName", String::class)
                     .addParameter("eventName", String::class)
                     .addParameter("params", Map::class.parameterizedBy(String::class, String::class))
                     .build())
             addModifiers(KModifier.OPEN)
             addProperty(PropertySpec.builder("categoryName", String::class)
                     .initializer("categoryName")
-                    .build())
-            addProperty(PropertySpec.builder("screenName", String::class)
-                    .initializer("screenName")
                     .build())
             addProperty(PropertySpec.builder("eventName", String::class)
                     .initializer("eventName")
